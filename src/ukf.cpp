@@ -48,12 +48,34 @@ UKF::UKF() {
   //DO NOT MODIFY measurement noise values above these are provided by the sensor manufacturer.
   
   /**
-  TODO:
+  TODO: done
 
   Complete the initialization. See ukf.h for other member properties.
 
   Hint: one or more values initialized above might be wildly off...
   */
+
+  // Initial time is zero
+  time_us_ = 0;
+
+  // state vector dimensions
+  n_x_ = 5;
+
+  // augmented state vector dimensions
+  n_aug_ = 7;
+
+  // initialise lambda parameter for calculating sigma points
+  lambda_ = 3 - n_aug_;
+
+  // initialise weights based on lambda and
+  weights_ = VectorXd(n_aug_);
+
+  weights_(0) = lambda_/(lambda_ + n_aug_);
+  for (int i = 1; i < 2*n_aug_ + 1; i++) {
+    weights_(i) = 0.5 / (lambda_ + n_aug_);
+  }
+
+  Xsig_pred_ = MatrixXd(n_x_, 2*n_aug_ + 1);
 }
 
 UKF::~UKF() {}
