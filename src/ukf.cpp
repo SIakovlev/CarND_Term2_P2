@@ -88,7 +88,7 @@ UKF::~UKF() {}
  */
 void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   /**
-  TODO:
+  TODO: done
   Complete this function! Make sure you switch between lidar and radar
   measurements.
   */
@@ -125,7 +125,14 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       // Complain if a new measurement neither lidar or radar
       std::cout << "Error: unknown measurement type " << endl;
     }
+
+    time_us_ = meas_package.timestamp_;
+    is_initialized_ = true;
+
+    return;
   }
+
+  std::cout << "UKF active phase..." << endl;
 
   // Calculate delta t in seconds:
   double dt = (meas_package.timestamp_ - time_us_) / 1000000.0;
