@@ -31,6 +31,9 @@ public:
   ///* predicted sigma points matrix
   MatrixXd Xsig_pred_;
 
+  ///* matrix with sigma points propagated through the measurement function
+  MatrixXd Zsig_;
+
   ///* time when the state is true, in us
   long long time_us_;
 
@@ -94,13 +97,13 @@ public:
    * Updates the state and the state covariance matrix using a laser measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateLidar(MeasurementPackage meas_package);
+  void UpdateLidar(VectorXd measurement);
 
   /**
    * Updates the state and the state covariance matrix using a radar measurement
    * @param meas_package The measurement at k+1
    */
-  void UpdateRadar(MeasurementPackage meas_package);
+  void UpdateRadar(VectorXd measurement);
 
   MatrixXd AugmentedSigmaPoints();
 
@@ -112,9 +115,9 @@ public:
 
   void PredictLidarMeasurement(VectorXd* z_out, MatrixXd* S_out);
 
-  void UpdateRadarState(MatrixXd& Zsig, VectorXd& z_pred, VectorXd& z, MatrixXd& S);
+  void UpdateRadarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S);
 
-  void UpdateLidarState(MatrixXd& Zsig, VectorXd& z_pred, VectorXd& z, MatrixXd& S);
+  void UpdateLidarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S);
 };
 
 #endif /* UKF_H */
