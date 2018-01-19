@@ -28,10 +28,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 3;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 2;
   
   //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
@@ -114,21 +114,21 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
           0, 0, 0, 0, 1;
 
     // Check if a new measurement came from radar or lidar
-    if (meas_package.sensor_type_ == meas_package.RADAR) {
+    if (meas_package.sensor_type_ == meas_package.RADAR && use_radar_) {
       // process radar measurements
       double rho = meas_package.raw_measurements_[0];
       double psi = meas_package.raw_measurements_[1];
 
       x_ << rho*cos(psi), rho*sin(psi), 0, 0, 0;
     }
-    else if (meas_package.sensor_type_ == meas_package.LASER) {
+    else if (meas_package.sensor_type_ == meas_package.LASER && use_laser_) {
       // process lidar measurements
       x_ << meas_package.raw_measurements_[0], meas_package.raw_measurements_[1], 0, 0, 0;
 
     }
     else {
       // Complain if a new measurement neither lidar or radar
-      std::cout << "Error: unknown measurement type " << endl;
+      std::cout << "Skip measurement." << endl;
     }
 
     time_us_ = meas_package.timestamp_;
@@ -142,12 +142,12 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
   time_us_ = meas_package.timestamp_;
 
   Prediction(dt);
-  if (meas_package.sensor_type_ == meas_package.RADAR)
+  if (meas_package.sensor_type_ == meas_package.RADAR && use_radar_)
     UpdateRadar(meas_package.raw_measurements_);
-  else if (meas_package.sensor_type_ == meas_package.LASER)
+  else if (meas_package.sensor_type_ == meas_package.LASER && use_laser_)
     UpdateLidar(meas_package.raw_measurements_);
   else
-    std::cout << "Error: unknown measurement type " << endl;
+    std::cout << "Skip measurement." << endl;
 
   // print the output
   //cout << "x_ = " << endl << x_ << endl;

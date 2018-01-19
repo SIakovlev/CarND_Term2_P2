@@ -40,7 +40,11 @@ int main()
 
   // Create txt file
   ofstream myfile;
-  myfile.open("ukf_output.txt");
+  myfile.open("nis_a"
+              + std::to_string(int(ukf.std_a_))
+              + "_yawdd"
+              + std::to_string(int(ukf.std_yawdd_))
+              +".txt");
 
   h.onMessage([&ukf,&tools,&estimations,&ground_truth, &myfile](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -110,6 +114,7 @@ int main()
     	  ground_truth.push_back(gt_values);
           
         //Call ProcessMeasurment(meas_package) for Kalman filter
+        ukf.use_radar_ = false;
     	  ukf.ProcessMeasurement(meas_package);    	  
 
         // Record data to txt file
