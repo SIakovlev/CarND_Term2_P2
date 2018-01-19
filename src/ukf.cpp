@@ -79,6 +79,10 @@ UKF::UKF() {
   }
 
   Xsig_pred_ =  MatrixXd(n_x_, 2*n_aug_ + 1);
+
+  e_NIS_radar = 0;
+  e_NIS_lidar = 0;
+
 }
 
 UKF::~UKF() {}
@@ -450,6 +454,9 @@ void UKF::UpdateRadarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S) {
   //update state mean and covariance matrix
   x_ = x_ + K * z_diff;
   P_ = P_ - K * S * K.transpose();
+
+  // calculate NIS
+  e_NIS_radar = z_diff.transpose() * S.inverse() * z_diff;
 }
 
 // This method updates state (x_) and covariance (P_) using
@@ -480,6 +487,9 @@ void UKF::UpdateLidarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S) {
   //update state mean and covariance matrix
   x_ = x_ + K * z_diff;
   P_ = P_ - K * S * K.transpose();
+
+  // calculate NIS
+  e_NIS_lidar = z_diff.transpose() * S.inverse() * z_diff;
 }
 
 /*
@@ -490,11 +500,9 @@ void UKF::UpdateLidarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S) {
 
 double UKF::NormaliseAngle(double& angle) {
   if (angle > M_PI) {
-    std::cout << "Normalisation" << endl;
     angle -= 2.0*M_PI;
   }
   else if (angle < -M_PI) {
-    std::cout << "Normalisation" << endl;
     angle += 2.0*M_PI;
   }
   return angle;

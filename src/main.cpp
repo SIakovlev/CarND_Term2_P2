@@ -38,7 +38,11 @@ int main()
   vector<VectorXd> estimations;
   vector<VectorXd> ground_truth;
 
-  h.onMessage([&ukf,&tools,&estimations,&ground_truth](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
+  // Create txt file
+  ofstream myfile;
+  myfile.open("ukf_output.txt");
+
+  h.onMessage([&ukf,&tools,&estimations,&ground_truth, &myfile](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -105,11 +109,13 @@ int main()
     	  gt_values(3) = vy_gt;
     	  ground_truth.push_back(gt_values);
           
-          //Call ProcessMeasurment(meas_package) for Kalman filter
+        //Call ProcessMeasurment(meas_package) for Kalman filter
     	  ukf.ProcessMeasurement(meas_package);    	  
 
-    	  //Push the current estimated x,y positon from the Kalman filter's state vector
+        // Record data to txt file
+        myfile << ukf.e_NIS_lidar << "\t" << ukf.e_NIS_radar << endl;
 
+    	  //Push the current estimated x,y positon from the Kalman filter's state vector
     	  VectorXd estimate(4);
 
     	  double p_x = ukf.x_(0);
@@ -185,6 +191,7 @@ int main()
     return -1;
   }
   h.run();
+  myfile.close();
 }
 
 
