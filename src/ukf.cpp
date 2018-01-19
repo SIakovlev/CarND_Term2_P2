@@ -1,6 +1,7 @@
 #include "ukf.h"
 #include "Eigen/Dense"
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 using Eigen::MatrixXd;
@@ -132,8 +133,6 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     return;
   }
 
-  std::cout << "UKF active phase..." << endl;
-
   // Calculate delta t in seconds:
   double dt = (meas_package.timestamp_ - time_us_) / 1000000.0;
   time_us_ = meas_package.timestamp_;
@@ -147,9 +146,9 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
     std::cout << "Error: unknown measurement type " << endl;
 
   // print the output
-  cout << "x_ = " << endl << x_ << endl;
-  cout << "P_ = " << endl << P_ << endl;
-  cout << endl;
+  //cout << "x_ = " << endl << x_ << endl;
+  //cout << "P_ = " << endl << P_ << endl;
+  //cout << endl;
 }
 
 /**
@@ -274,7 +273,7 @@ void UKF::SigmaPointPrediction(MatrixXd Xsig_aug_, double delta_t) {
     VectorXd x_2 = VectorXd(5);
 
     //avoid division by zero
-    if (!psi_d)
+    if (fabs(psi_d) < 0.01)
       x_1 <<  v * cos(psi) * delta_t,
               v * sin(psi) * delta_t,
               0,
@@ -307,7 +306,9 @@ void UKF::PredictMeanCovariance() {
     x_ += weights_(i) * Xsig_pred_.col(i);
   }
   for (int i = 0; i < 2*n_aug_ + 1; i++) {
-    P_ += weights_(i) * (Xsig_pred_.col(i) - x_)*(Xsig_pred_.col(i) - x_).transpose();
+    VectorXd x_diff = Xsig_pred_.col(i) - x_;
+    x_diff(3) = NormaliseAngle(x_diff(3));
+    P_ += weights_(i) * x_diff * x_diff.transpose();
   }
 }
 
@@ -341,11 +342,14 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
     double psi =      Xsig_pred_(3, i);
     double psi_d =    Xsig_pred_(4, i);
 
+    // introduce small eps in order to avoid division by zero
+    double eps =      0.001;
+
     double rho =      sqrt(pow(px, 2) + pow(py, 2));
     double phi =      atan2(py, px);
-    double rho_d =    (px*v*cos(psi) + py*v*sin(psi))/rho;
+    double rho_d =    (px*v*cos(psi) + py*v*sin(psi)) / std::max(rho, eps);
 
-    Zsig_.col(i) <<    rho,
+    Zsig_.col(i) <<   rho,
                       phi,
                       rho_d;
 
@@ -363,7 +367,9 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
   // set entries of S to zero
   S.setZero();
   for (int i = 0; i < 2*n_aug_ + 1; i++) {
-    S += weights_(i) * (Zsig_.col(i) - z_pred) * (Zsig_.col(i) - z_pred).transpose();
+    VectorXd z_diff = Zsig_.col(i) - z_pred;
+    z_diff(1) = NormaliseAngle(z_diff(1));
+    S += weights_(i) * z_diff * z_diff.transpose();
   }
   S += R;
 
@@ -405,7 +411,8 @@ void UKF::PredictLidarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
 
   S.setZero();
   for (int i = 0; i < 2*n_aug_ + 1; i++) {
-    S += weights_(i) * (Zsig_.col(i) - z_pred) * (Zsig_.col(i) - z_pred).transpose();
+    VectorXd z_diff = Zsig_.col(i) - z_pred;
+    S += weights_(i) * z_diff * z_diff.transpose();
   }
   S += R;
 
@@ -426,15 +433,22 @@ void UKF::UpdateRadarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S) {
   //calculate cross correlation matrix
   Tc.setZero();
   for (int i = 0; i < 2*n_aug_ + 1; i++) {
-    Tc += weights_(i) * (Xsig_pred_.col(i) - x_) * (Zsig_.col(i) - z_pred).transpose();
+    VectorXd x_diff = Xsig_pred_.col(i) - x_;
+    VectorXd z_diff = Zsig_.col(i) - z_pred;
+    x_diff(3) = NormaliseAngle(x_diff(3));
+    z_diff(1) = NormaliseAngle(z_diff(1));
+    Tc += weights_(i) * x_diff * z_diff.transpose();
   }
 
   //calculate Kalman gain K;
   MatrixXd K = MatrixXd(n_z, n_z);
   K = Tc * S.inverse();
 
+  VectorXd z_diff = z - z_pred;
+  z_diff(1) = NormaliseAngle(z_diff(1));
+
   //update state mean and covariance matrix
-  x_ = x_ + K * (z - z_pred);
+  x_ = x_ + K * z_diff;
   P_ = P_ - K * S * K.transpose();
 }
 
@@ -451,18 +465,38 @@ void UKF::UpdateLidarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S) {
   //calculate cross correlation matrix
   Tc.setZero();
   for (int i = 0; i < 2*n_aug_ + 1; i++) {
-    Tc += weights_(i) * (Xsig_pred_.col(i) - x_) * (Zsig_.col(i) - z_pred).transpose();
+    VectorXd x_diff = Xsig_pred_.col(i) - x_;
+    VectorXd z_diff = Zsig_.col(i) - z_pred;
+    x_diff(3) = NormaliseAngle(x_diff(3));
+    Tc += weights_(i) * x_diff * z_diff.transpose();
   }
 
   //calculate Kalman gain K;
   MatrixXd K = MatrixXd(n_z, n_z);
   K = Tc * S.inverse();
 
+  VectorXd z_diff = z - z_pred;
+
   //update state mean and covariance matrix
-  x_ = x_ + K * (z - z_pred);
+  x_ = x_ + K * z_diff;
   P_ = P_ - K * S * K.transpose();
 }
 
 /*
  * --------------------------------------------------------------------------------
+ * Other routines
+ * --------------------------------------------------------------------------------
  */
+
+double UKF::NormaliseAngle(double& angle) {
+  if (angle > M_PI) {
+    std::cout << "Normalisation" << endl;
+    angle -= 2.0*M_PI;
+  }
+  else if (angle < -M_PI) {
+    std::cout << "Normalisation" << endl;
+    angle += 2.0*M_PI;
+  }
+  return angle;
+}
+

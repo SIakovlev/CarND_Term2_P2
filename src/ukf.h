@@ -118,6 +118,8 @@ public:
   void UpdateRadarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S);
 
   void UpdateLidarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S);
+
+  double NormaliseAngle(double& angle);
 };
 
 #endif /* UKF_H */
