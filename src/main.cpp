@@ -114,7 +114,8 @@ int main()
     	  ground_truth.push_back(gt_values);
           
         //Call ProcessMeasurment(meas_package) for Kalman filter
-        ukf.use_radar_ = false;
+        //ukf.use_radar_ = false;
+
     	  ukf.ProcessMeasurement(meas_package);    	  
 
         // Record data to txt file
