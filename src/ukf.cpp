@@ -28,10 +28,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 3;
+  std_a_ = 2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 2;
+  std_yawdd_ = 1;
   
   //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
@@ -347,7 +347,7 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
     double psi_d =    Xsig_pred_(4, i);
 
     // introduce small eps in order to avoid division by zero
-    double eps =      0.001;
+    double eps =      0.1;
 
     double rho =      sqrt(pow(px, 2) + pow(py, 2));
     double phi =      atan2(py, px);
