@@ -63,19 +63,69 @@ The following table compares RMSE values for [EKF](https://github.com/SIakovlev/
 
 | Parameter | EKF-RMSE | UKF-RMSE |
 |:---------:|:----:|:--------------:|
-|x          |0.0974  | *0.0736*         |
-|y          |*0.0855*| 0.0873         |
-|Vx         |0.4517  | *0.3681*         |
-|Vy         |0.4404  | *0.2688*         |
+|x          |0.0974  | **0.0736**         |
+|y          |**0.0855**| 0.0873         |
+|Vx         |0.4517  | **0.3681**         |
+|Vy         |0.4404  | **0.2688**         |
 
 ### UKF: radar and/or lidar measurements:
 
 | Parameter | UKF (L+R) | UKF (L) | UKF (R) |
 |:---------:|:---------:|:-------:|:-------:|
-|x          |*0.0736*   | 0.1148  | 0.1851  |
-|y          |*0.0873*   | 0.1053  | 0.2774  |
-|Vx         |*0.3681*   | 0.6386  | 0.3474  |
-|Vy         |*0.2688*   | 0.3245  | 0.4307  |
+|x          |**0.0736**   | 0.1148  | 0.1851  |
+|y          |**0.0873**   | 0.1053  | 0.2774  |
+|Vx         |**0.3681**   | 0.6386  | 0.3474  |
+|Vy         |**0.2688**   | 0.3245  | 0.4307  |
 
+## Rubric questions
 
+### Compiling
+Requirement is met. See above
 
+### Accuracy
+Requirement is met. See tables above
+
+### Follows the Correct Algorithm
+
+#### Processing flow
+General processing flow is shown below: 
+* Prediction step. Method `void UKF::Prediction(double)`.
+  * Generate sigma points. Method `MatrixXd UKF::AugmentedSigmaPoints()`. 
+  * Predict sigma points. Method `void UKF::SigmaPointPrediction(MatrixXd, double)`.
+  * Predict mean and covariance. Method `void UKF::PredictMeanCovariance()`.
+* Update step. 
+  * Update step for Radar
+    * Predict measurement. Method `void UKF::PredictRadarMeasurement(VectorXd*, MatrixXd*)`.
+    * Update state. Method `void UpdateRadarState(VectorXd&, VectorXd&, MatrixXd&)`.
+  * Update step for LIDAR
+    * Predict measurement. Method `void UKF::PredictLidarMeasurement(VectorXd*, MatrixXd*)`.
+    * Update state. Method `void UpdateLidarState(VectorXd&, VectorXd&, MatrixXd&)`. 
+
+#### First measurement
+After getting the first measurement UKF does the following:
+
+* Initialisation of the state `x_` (depends on sensor) and state covariance matrix `P_`
+* Update the time variable `time_us` and initialisation flag `is_initialised`
+* Return to the `main()` function 
+
+For implementation details see `void UKF::ProcessMeasurement(MeasurementPackage meas_package)`.
+
+#### First predict then update
+Requirement is met. For details see `void UKF::ProcessMeasurement(MeasurementPackage meas_package)`.
+
+#### Radar and/or lidar measurements handling
+This is done using flags `use_radar_` and `use_lidar` in the following lines from `void UKF::ProcessMeasurement(MeasurementPackage meas_package)`:
+
+```c++
+  Prediction(dt);
+  if (meas_package.sensor_type_ == meas_package.RADAR && use_radar_)
+    UpdateRadar(meas_package.raw_measurements_);
+  else if (meas_package.sensor_type_ == meas_package.LASER && use_laser_)
+    UpdateLidar(meas_package.raw_measurements_);
+  else
+    std::cout << "Skip measurement." << endl;
+```
+(the same logic is implemented for initialisation step)
+
+### Code efficiency
+See `\src\ukf.cpp` for source code.
