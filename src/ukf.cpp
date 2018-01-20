@@ -28,10 +28,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 2;
+  std_a_ = 0.5;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 1;
+  std_yawdd_ = 0.5;
   
   //DO NOT MODIFY measurement noise values below these are provided by the sensor manufacturer.
   // Laser measurement noise standard deviation position1 in m
@@ -276,8 +276,9 @@ void UKF::SigmaPointPrediction(MatrixXd Xsig_aug_, double delta_t) {
     VectorXd x_1 = VectorXd(5);
     VectorXd x_2 = VectorXd(5);
 
+    double eps = 0.01;
     //avoid division by zero
-    if (fabs(psi_d) < 0.01)
+    if (fabs(psi_d) < eps)
       x_1 <<  v * cos(psi) * delta_t,
               v * sin(psi) * delta_t,
               0,
@@ -347,7 +348,7 @@ void UKF::PredictRadarMeasurement(VectorXd* z_out, MatrixXd* S_out) {
     double psi_d =    Xsig_pred_(4, i);
 
     // introduce small eps in order to avoid division by zero
-    double eps =      0.1;
+    double eps =      0.01;
 
     double rho =      sqrt(pow(px, 2) + pow(py, 2));
     double phi =      atan2(py, px);
@@ -446,7 +447,14 @@ void UKF::UpdateRadarState(VectorXd& z, VectorXd& z_pred, MatrixXd& S) {
 
   //calculate Kalman gain K;
   MatrixXd K = MatrixXd(n_z, n_z);
-  K = Tc * S.inverse();
+
+  double eps = 0.01;
+  if (S.norm() < eps) {
+    K = Tc * (S + eps*MatrixXd::Identity(n_z, n_z)).inverse();
+  } else {
+    K = Tc * S.inverse();
+  }
+
 
   VectorXd z_diff = z - z_pred;
   z_diff(1) = NormaliseAngle(z_diff(1));

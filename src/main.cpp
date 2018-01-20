@@ -40,11 +40,13 @@ int main()
 
   // Create txt file
   ofstream myfile;
-  myfile.open("nis_a"
+  myfile.open("laser-radar-ukf-output.txt");
+  /*myfile.open("nis_a"
               + std::to_string(int(ukf.std_a_))
               + "_yawdd"
               + std::to_string(int(ukf.std_yawdd_))
               +".txt");
+  */
 
   h.onMessage([&ukf,&tools,&estimations,&ground_truth, &myfile](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -119,7 +121,7 @@ int main()
     	  ukf.ProcessMeasurement(meas_package);    	  
 
         // Record data to txt file
-        myfile << ukf.e_NIS_lidar << "\t" << ukf.e_NIS_radar << endl;
+        // myfile << ukf.e_NIS_lidar << "\t" << ukf.e_NIS_radar << endl;
 
     	  //Push the current estimated x,y positon from the Kalman filter's state vector
     	  VectorXd estimate(4);
@@ -136,6 +138,17 @@ int main()
     	  estimate(1) = p_y;
     	  estimate(2) = v1;
     	  estimate(3) = v2;
+
+        // Write to txt file for visualisation
+        myfile << p_x << '\t' << p_y << '\t' << v1 << '\t' << v2 << '\t';
+        if (meas_package.sensor_type_ == MeasurementPackage::LASER) {
+          myfile << meas_package.raw_measurements_[0] << '\t' << meas_package.raw_measurements_[1] << '\t';
+        } else if (meas_package.sensor_type_ == MeasurementPackage::RADAR) {
+          double rho = meas_package.raw_measurements_[0];
+          double phi = meas_package.raw_measurements_[1];
+          myfile << rho*cos(phi) << '\t' << rho*sin(phi) << '\t';
+        }
+        myfile << gt_values(0) << '\t' << gt_values(1) << '\t' << gt_values(2) << '\t' << gt_values(3) << endl;
     	  
     	  estimations.push_back(estimate);
 
